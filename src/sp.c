@@ -13,35 +13,36 @@ ltrim(char *src)
 {
         char *dst;
 
-        for (dst=src; *src == BLANK; src++) {;}
+        for (dst = src; *src == BLANK; ++src);
 
-        if (dst==src) return;
-
-        while ((*dst++ = *src++)) {;}
-}
-
-static int
-extract_key_value(const char *src, const char *token, char *dest_key, char *dest_value)
-{
-        char *src_dup = strdup(src);
-
-        if (src_dup != NULL) {
-                char *rest = NULL;
-
-                char *key = strtok_r(src_dup, token, &rest);
-                char *value = strtok_r(NULL, token, &rest);
-
-                if (key != NULL && value != NULL) {
-                        memmove(dest_key, key, strlen(key));
-                        memmove(dest_value, value, strlen(value) - 1);
-                }
-
-                free(src_dup);
-
-                return SP_SUCCESS;
+        if (dst == src) {
+                return;
         }
 
-        return SP_FAILURE;
+        while ((*dst++ = *src++));
+}
+
+static char *
+trim(char *str)
+{
+        if (str == NULL) {
+                return "";
+        }
+
+        char *end;
+
+        while(isspace((unsigned char)*str)) str++;
+
+        if(*str == 0) {
+                return "";
+        }
+
+        end = str + strlen(str) - 1;
+        while(end > str && isspace((unsigned char)*end)) end--;
+
+        end[1] = '\0';
+
+        return str;
 }
 
 bool
@@ -82,13 +83,9 @@ SP_parse_config(FILE *conf_file, SP_Module modules[], size_t nmodules)
                         char key[CONFLINE]   = { 0 },
                              value[CONFLINE] = { 0 };
 
-                        int error = 0;
-                        error = extract_key_value(conf_line, "=", key, value);
-                        if (error) {
-                                return SP_FAILURE;
-                        }
-                        
-                        phandler(object, key, value);
+                        sscanf(conf_line, "%[^=]=%[^\n]", key, value);
+
+                        phandler(object, trim(key), trim(value));
                 }
         }
 
